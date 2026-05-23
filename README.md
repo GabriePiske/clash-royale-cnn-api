@@ -224,4 +224,4 @@ curl.exe -X POST http://localhost:3000/infer -F "image=@./clash_royale/test/gobl
 - O modelo foi treinado no Google Colab com imagens das 4 classes acima.
 - A arquitetura da CNN no `server.js` deve ser idêntica à usada no treinamento.
 - Imagens muito diferentes do estilo de treino podem retornar `"desconhecido"`.
-- As pastas `.venv/`, `node_modules/` e `.runtime/` não são incluídas no repositório — precisam ser criadas localmente seguindo os passos acima.
+- As pastas `.venv/`, `node_modules/` e `.runtime/` não são incluídas no repositório, precisam ser criadas localmente seguindo os passos acima.
