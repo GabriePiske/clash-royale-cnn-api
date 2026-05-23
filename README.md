@@ -118,7 +118,7 @@ models_saved/model.pth
 
 ## Executando o projeto
 
-O projeto precisa de **dois terminais abertos ao mesmo tempo** — um para a API e outro para o frontend.
+O projeto precisa de **dois terminais abertos ao mesmo tempo**, um para a API e outro para o frontend.
 
 ### Terminal 1 — API
 
