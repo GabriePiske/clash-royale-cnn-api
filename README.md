@@ -1,6 +1,6 @@
 # Clash Classifier — CNN Inference API
 
-API REST que identifica personagens do **Clash of Clans** em imagens usando um modelo CNN treinado no PyTorch. O modelo foi treinado no Google Colab e a inferência é executada localmente via Node.js + Python.
+API REST que identifica personagens do **Clash Royale** em imagens usando um modelo CNN treinado no PyTorch. O modelo foi treinado no Google Colab e a inferência é executada localmente via Node.js + Python.
 
 ### Classes suportadas
 
