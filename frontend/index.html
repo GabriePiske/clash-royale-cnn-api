@@ -1,0 +1,574 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Clash Royale · CNN Classifier</title>
+  <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Mono:wght@400;500&family=DM+Sans:wght@400;500;700&display=swap" rel="stylesheet"/>
+  <style>
+    *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+
+    :root{
+      --bg:#0d0d0d;
+      --surface:#161616;
+      --card:#1c1c1c;
+      --border:#2e2e2e;
+      --gold:#f5c842;
+      --gold2:#e6a800;
+      --red:#e84040;
+      --green:#4cde80;
+      --text:#f0ece0;
+      --muted:#6b6658;
+      --display:'Bebas Neue',sans-serif;
+      --mono:'DM Mono',monospace;
+      --body:'DM Sans',sans-serif;
+    }
+
+    body{
+      background:var(--bg);
+      color:var(--text);
+      font-family:var(--body);
+      min-height:100vh;
+      display:flex;
+      flex-direction:column;
+      align-items:center;
+      padding:48px 20px 80px;
+      position:relative;
+      overflow-x:hidden;
+    }
+
+    body::before{
+      content:'';
+      position:fixed;
+      inset:0;
+      background-image:
+        linear-gradient(rgba(245,200,66,0.03) 1px,transparent 1px),
+        linear-gradient(90deg,rgba(245,200,66,0.03) 1px,transparent 1px);
+      background-size:40px 40px;
+      pointer-events:none;
+    }
+
+    body::after{
+      content:'';
+      position:fixed;
+      top:-20%;left:50%;
+      transform:translateX(-50%);
+      width:600px;height:400px;
+      background:radial-gradient(ellipse,rgba(245,200,66,0.06) 0%,transparent 70%);
+      pointer-events:none;
+    }
+
+    header{
+      text-align:center;
+      margin-bottom:48px;
+      animation:fadeDown .5s ease both;
+    }
+
+    .crown{
+      font-size:28px;
+      display:block;
+      margin-bottom:8px;
+      animation:float 3s ease-in-out infinite;
+    }
+
+    h1{
+      font-family:var(--display);
+      font-size:clamp(3rem,8vw,5.5rem);
+      letter-spacing:0.06em;
+      line-height:1;
+      color:var(--gold);
+      text-shadow:0 0 40px rgba(245,200,66,0.3);
+    }
+
+    .subtitle{
+      font-family:var(--mono);
+      font-size:11px;
+      letter-spacing:0.2em;
+      text-transform:uppercase;
+      color:var(--muted);
+      margin-top:10px;
+    }
+
+    .classes-row{
+      display:flex;
+      gap:8px;
+      justify-content:center;
+      flex-wrap:wrap;
+      margin-bottom:40px;
+      animation:fadeUp .5s ease .1s both;
+    }
+
+    .class-pill{
+      font-family:var(--mono);
+      font-size:10px;
+      letter-spacing:0.15em;
+      text-transform:uppercase;
+      padding:5px 14px;
+      border:1px solid var(--border);
+      border-radius:2px;
+      color:var(--muted);
+    }
+
+    .wrapper{
+      width:100%;
+      max-width:580px;
+      animation:fadeUp .5s ease .15s both;
+    }
+
+    .drop-zone{
+      border:1.5px dashed var(--border);
+      border-radius:4px;
+      padding:48px 24px;
+      text-align:center;
+      cursor:pointer;
+      transition:border-color .2s,background .2s;
+      position:relative;
+      margin-bottom:16px;
+      background:var(--surface);
+    }
+
+    .drop-zone:hover,.drop-zone.over{
+      border-color:var(--gold);
+      background:rgba(245,200,66,0.03);
+    }
+
+    .drop-zone input{
+      position:absolute;inset:0;
+      opacity:0;cursor:pointer;
+      width:100%;height:100%;
+    }
+
+    .drop-icon{font-size:36px;display:block;margin-bottom:12px;}
+
+    .drop-text{
+      font-family:var(--mono);
+      font-size:12px;
+      color:var(--muted);
+      line-height:1.8;
+    }
+
+    .drop-text strong{color:var(--text);}
+
+    #preview-wrap{
+      display:none;
+      position:relative;
+      margin-bottom:16px;
+      border:1px solid var(--border);
+      border-radius:4px;
+      overflow:hidden;
+      background:var(--surface);
+    }
+
+    #preview-img{
+      width:100%;
+      max-height:300px;
+      object-fit:contain;
+      display:block;
+    }
+
+    .remove-btn{
+      position:absolute;top:10px;right:10px;
+      background:rgba(13,13,13,.85);
+      border:1px solid var(--border);
+      color:var(--muted);
+      border-radius:2px;
+      padding:4px 10px;
+      font-family:var(--mono);
+      font-size:11px;
+      cursor:pointer;
+      transition:color .2s;
+    }
+    .remove-btn:hover{color:var(--red);}
+
+    .btn{
+      width:100%;
+      padding:16px;
+      background:var(--gold);
+      color:#0d0d0d;
+      border:none;
+      border-radius:3px;
+      font-family:var(--display);
+      font-size:22px;
+      letter-spacing:0.1em;
+      cursor:pointer;
+      transition:opacity .2s,transform .15s,box-shadow .2s;
+      box-shadow:0 4px 24px rgba(245,200,66,0.2);
+    }
+
+    .btn:hover:not(:disabled){
+      opacity:.9;
+      transform:translateY(-2px);
+      box-shadow:0 8px 32px rgba(245,200,66,0.3);
+    }
+
+    .btn:disabled{opacity:.3;cursor:not-allowed;transform:none;}
+
+    #result-wrap{
+      margin-top:24px;
+      display:none;
+      background:var(--card);
+      border:1px solid var(--border);
+      border-radius:4px;
+      overflow:hidden;
+      animation:fadeUp .4s ease both;
+    }
+
+    .result-top{
+      padding:24px 24px 20px;
+      border-bottom:1px solid var(--border);
+      display:flex;
+      align-items:center;
+      gap:16px;
+    }
+
+    .result-emoji{font-size:40px;flex-shrink:0;}
+
+    .result-info{flex:1;}
+
+    .result-label{
+      font-family:var(--mono);
+      font-size:10px;
+      letter-spacing:0.2em;
+      text-transform:uppercase;
+      color:var(--muted);
+      margin-bottom:4px;
+    }
+
+    .result-class{
+      font-family:var(--display);
+      font-size:2.8rem;
+      letter-spacing:0.06em;
+      line-height:1;
+    }
+
+    .result-class.known{color:var(--gold);}
+    .result-class.unknown{color:var(--muted);}
+
+    .result-conf{
+      font-family:var(--mono);
+      font-size:12px;
+      color:var(--muted);
+      margin-top:6px;
+    }
+
+    .conf-val{color:var(--green);}
+
+    .result-bottom{padding:20px 24px;}
+
+    .top-label{
+      font-family:var(--mono);
+      font-size:10px;
+      letter-spacing:0.2em;
+      text-transform:uppercase;
+      color:var(--muted);
+      margin-bottom:14px;
+    }
+
+    .pred-row{
+      display:flex;
+      align-items:center;
+      gap:12px;
+      margin-bottom:10px;
+    }
+
+    .pred-name{
+      font-family:var(--mono);
+      font-size:12px;
+      width:80px;
+      color:var(--text);
+      white-space:nowrap;
+    }
+
+    .pred-bar-wrap{flex:1;}
+
+    .pred-bar{
+      height:3px;
+      background:var(--border);
+      border-radius:2px;
+      overflow:hidden;
+    }
+
+    .pred-fill{
+      height:100%;
+      background:var(--border);
+      border-radius:2px;
+      transition:width .7s cubic-bezier(.22,1,.36,1);
+    }
+
+    .pred-fill.top{background:var(--gold);}
+
+    .pred-pct{
+      font-family:var(--mono);
+      font-size:11px;
+      color:var(--muted);
+      width:40px;
+      text-align:right;
+    }
+
+    .error-box{
+      display:none;
+      margin-top:16px;
+      background:rgba(232,64,64,.08);
+      border:1px solid rgba(232,64,64,.25);
+      border-radius:3px;
+      padding:14px 16px;
+      font-family:var(--mono);
+      font-size:12px;
+      color:var(--red);
+      line-height:1.6;
+    }
+
+    .raw-toggle{
+      display:block;
+      margin:16px 24px 0;
+      font-family:var(--mono);
+      font-size:11px;
+      color:var(--muted);
+      background:none;
+      border:none;
+      cursor:pointer;
+      text-decoration:underline;
+      text-underline-offset:3px;
+      transition:color .2s;
+      padding-bottom:16px;
+    }
+    .raw-toggle:hover{color:var(--text);}
+
+    pre.raw-json{
+      display:none;
+      margin:0 24px 20px;
+      background:var(--bg);
+      border:1px solid var(--border);
+      border-radius:3px;
+      padding:14px;
+      font-family:var(--mono);
+      font-size:11px;
+      color:var(--gold2);
+      overflow-x:auto;
+      white-space:pre-wrap;
+      word-break:break-all;
+      line-height:1.7;
+    }
+
+    .spinner{
+      width:14px;height:14px;
+      border:2px solid rgba(0,0,0,.2);
+      border-top-color:#0d0d0d;
+      border-radius:50%;
+      animation:spin .6s linear infinite;
+      display:inline-block;
+      vertical-align:middle;
+      margin-right:8px;
+    }
+
+    .api-row{
+      display:flex;
+      align-items:center;
+      gap:10px;
+      margin-bottom:16px;
+    }
+
+    .api-row label{
+      font-family:var(--mono);
+      font-size:10px;
+      letter-spacing:.15em;
+      text-transform:uppercase;
+      color:var(--muted);
+      white-space:nowrap;
+    }
+
+    .api-row input{
+      flex:1;
+      background:var(--surface);
+      border:1px solid var(--border);
+      border-radius:3px;
+      padding:8px 12px;
+      color:var(--text);
+      font-family:var(--mono);
+      font-size:12px;
+      outline:none;
+      transition:border-color .2s;
+    }
+    .api-row input:focus{border-color:var(--gold);}
+
+    footer{
+      margin-top:48px;
+      font-family:var(--mono);
+      font-size:10px;
+      letter-spacing:.15em;
+      text-transform:uppercase;
+      color:var(--muted);
+      animation:fadeUp .5s ease .3s both;
+    }
+
+    @keyframes fadeDown{from{opacity:0;transform:translateY(-16px)}to{opacity:1;transform:none}}
+    @keyframes fadeUp{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:none}}
+    @keyframes spin{to{transform:rotate(360deg)}}
+    @keyframes float{0%,100%{transform:translateY(0)}50%{transform:translateY(-6px)}}
+  </style>
+</head>
+<body>
+
+<header>
+  <span class="crown">👑</span>
+  <h1>CLASH CLASSIFIER</h1>
+  <p class="subtitle">CNN · PyTorch · Node.js</p>
+</header>
+
+<div class="classes-row">
+  <span class="class-pill">👺 Goblin</span>
+  <span class="class-pill">🤖 P.E.K.K.A</span>
+  <span class="class-pill">🧙 Witch</span>
+  <span class="class-pill">🧝 Wizard</span>
+</div>
+
+<div class="wrapper">
+
+  <div class="api-row">
+    <label>API</label>
+    <input type="text" id="api-url" value="http://localhost:3000/infer" spellcheck="false"/>
+  </div>
+
+  <div class="drop-zone" id="drop-zone">
+    <input type="file" id="file-input" accept="image/jpeg,image/png,image/webp,image/bmp"/>
+    <span class="drop-icon">🃏</span>
+    <p class="drop-text">
+      <strong>Clique ou arraste uma imagem aqui</strong><br>
+      JPEG · PNG · WEBP · BMP — máx. 8 MB
+    </p>
+  </div>
+
+  <div id="preview-wrap">
+    <img id="preview-img" src="" alt="preview"/>
+    <button class="remove-btn" id="remove-btn">✕ remover</button>
+  </div>
+
+  <button class="btn" id="infer-btn" disabled>CLASSIFICAR</button>
+
+  <div class="error-box" id="error-box"></div>
+
+  <div id="result-wrap">
+    <div class="result-top">
+      <span class="result-emoji" id="result-emoji"></span>
+      <div class="result-info">
+        <p class="result-label">classe identificada</p>
+        <p class="result-class" id="result-class"></p>
+        <p class="result-conf">confiança: <span class="conf-val" id="conf-val"></span></p>
+      </div>
+    </div>
+    <div class="result-bottom">
+      <p class="top-label">top previsões</p>
+      <div id="top-preds"></div>
+    </div>
+    <button class="raw-toggle" id="raw-toggle">ver JSON</button>
+    <pre class="raw-json" id="raw-json"></pre>
+  </div>
+
+</div>
+
+<footer>CLASH CLASSIFIER</footer>
+
+<script>
+  const CLASS_EMOJIS={goblin:'👺',pekka:'🤖',witch:'🧙',wizard:'🧝',desconhecido:'❓'};
+
+  const fileInput=document.getElementById('file-input');
+  const dropZone=document.getElementById('drop-zone');
+  const previewWrap=document.getElementById('preview-wrap');
+  const previewImg=document.getElementById('preview-img');
+  const removeBtn=document.getElementById('remove-btn');
+  const inferBtn=document.getElementById('infer-btn');
+  const errorBox=document.getElementById('error-box');
+  const resultWrap=document.getElementById('result-wrap');
+  const resultClass=document.getElementById('result-class');
+  const resultEmoji=document.getElementById('result-emoji');
+  const confVal=document.getElementById('conf-val');
+  const topPreds=document.getElementById('top-preds');
+  const rawToggle=document.getElementById('raw-toggle');
+  const rawJson=document.getElementById('raw-json');
+  const apiUrl=document.getElementById('api-url');
+
+  let selectedFile=null;
+
+  dropZone.addEventListener('dragover',e=>{e.preventDefault();dropZone.classList.add('over');});
+  dropZone.addEventListener('dragleave',()=>dropZone.classList.remove('over'));
+  dropZone.addEventListener('drop',e=>{e.preventDefault();dropZone.classList.remove('over');if(e.dataTransfer.files[0])setFile(e.dataTransfer.files[0]);});
+  fileInput.addEventListener('change',()=>{if(fileInput.files[0])setFile(fileInput.files[0]);});
+
+  removeBtn.addEventListener('click',()=>{
+    selectedFile=null;fileInput.value='';
+    previewImg.src='';previewWrap.style.display='none';
+    dropZone.style.display='block';inferBtn.disabled=true;
+    hideResult();
+  });
+
+  function setFile(f){
+    selectedFile=f;
+    previewImg.src=URL.createObjectURL(f);
+    previewWrap.style.display='block';
+    dropZone.style.display='none';
+    inferBtn.disabled=false;
+    hideResult();
+  }
+
+  function hideResult(){
+    resultWrap.style.display='none';
+    errorBox.style.display='none';
+    rawJson.style.display='none';
+    rawToggle.textContent='ver JSON';
+  }
+
+  rawToggle.addEventListener('click',()=>{
+    const v=rawJson.style.display==='block';
+    rawJson.style.display=v?'none':'block';
+    rawToggle.textContent=v?'ver JSON':'ocultar JSON';
+  });
+
+  inferBtn.addEventListener('click',async()=>{
+    if(!selectedFile)return;
+    inferBtn.disabled=true;
+    inferBtn.innerHTML='<span class="spinner"></span>CLASSIFICANDO...';
+    hideResult();
+
+    const fd=new FormData();
+    fd.append('image',selectedFile);
+
+    try{
+      const res=await fetch(apiUrl.value.trim(),{method:'POST',body:fd});
+      const data=await res.json();
+      if(!data.ok)throw new Error(data.error||'Erro desconhecido.');
+      showResult(data);
+    }catch(err){
+      errorBox.textContent='⚠ '+err.message;
+      errorBox.style.display='block';
+    }finally{
+      inferBtn.disabled=false;
+      inferBtn.textContent='CLASSIFICAR';
+    }
+  });
+
+  function showResult(data){
+    const cls=data.predictedClass;
+    const unknown=cls==='desconhecido';
+    const emoji=CLASS_EMOJIS[cls]||'❓';
+
+    resultEmoji.textContent=emoji;
+    resultClass.textContent=cls.toUpperCase();
+    resultClass.className='result-class '+(unknown?'unknown':'known');
+    confVal.textContent=(data.confidence*100).toFixed(1)+'%';
+
+    topPreds.innerHTML='';
+    (data.topPredictions||[]).forEach((p,i)=>{
+      const pct=Math.round(p.confidence*100);
+      const row=document.createElement('div');
+      row.className='pred-row';
+      row.innerHTML=`<span class="pred-name">${CLASS_EMOJIS[p.class]||''} ${p.class}</span><div class="pred-bar-wrap"><div class="pred-bar"><div class="pred-fill ${i===0?'top':''}" style="width:0%" data-w="${pct}%"></div></div></div><span class="pred-pct">${pct}%</span>`;
+      topPreds.appendChild(row);
+    });
+    setTimeout(()=>{topPreds.querySelectorAll('.pred-fill').forEach(el=>el.style.width=el.dataset.w);},60);
+
+    rawJson.textContent=JSON.stringify(data,null,2);
+    resultWrap.style.display='block';
+  }
+</script>
+</body>
+</html>
